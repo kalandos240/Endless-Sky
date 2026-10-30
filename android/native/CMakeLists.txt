@@ -24,3 +24,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_MAP_IMPORTED_CONFIG_DEBUG Release)
 set(CMAKE_MAP_IMPORTED_CONFIG_RELWITHDEBINFO Release)
 add_subdirectory("${PORT_ROOT}/build/upstream" "${CMAKE_CURRENT_BINARY_DIR}/endless-sky")
+
+# JNI bridge and game-thread touch command handling.
+target_sources(EndlessSky PRIVATE "${CMAKE_CURRENT_LIST_DIR}/AndroidTouch.cpp")
+target_include_directories(EndlessSkyLib PUBLIC "${CMAKE_CURRENT_LIST_DIR}")

@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Fetch a pinned upstream checkout and apply the Android port patches."""
 import pathlib
+import os
+import tempfile
 import subprocess
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -26,7 +28,24 @@ def main():
         git('checkout', '--detach', REVISION)
     elif head.stdout.strip() != REVISION:
         raise SystemExit('Upstream revision differs; use a new clean checkout.')
-    for patch in sorted((ROOT / 'patches').glob('*.patch')):
+    patches = sorted((ROOT / 'patches').glob('*.patch'))
+    # Later patches can overlap earlier hunks, making individual reverse checks fail.
+    # Build the final expected index without modifying the real index or working files.
+    with tempfile.TemporaryDirectory(dir=DESTINATION.parent) as temporary:
+        environment = dict(os.environ, GIT_INDEX_FILE=str(pathlib.Path(temporary) / 'index'))
+        command = ['git', '-C', str(DESTINATION)]
+        subprocess.run([*command, 'read-tree', 'HEAD'], env=environment, check=True)
+        for patch in patches:
+            subprocess.run([*command, 'apply', '--cached', str(patch)], env=environment, check=True)
+        paths = subprocess.check_output([*command, 'diff', '--cached', '--name-only', '-z'],
+                                        env=environment).decode().split('\0')
+        paths = [path for path in paths if path]
+        complete = subprocess.run([*command, 'diff', '--quiet', '--', *paths],
+                                  env=environment).returncode == 0
+        if complete:
+            print(f'All {len(patches)} upstream patches already applied: {DESTINATION}')
+            return
+    for patch in patches:
         applied = subprocess.run(['git', '-C', str(DESTINATION), 'apply',
                                   '--reverse', '--check', str(patch)], capture_output=True)
         if applied.returncode == 0:

@@ -1,0 +1,83 @@
+diff --git a/source/Command.cpp b/source/Command.cpp
+index ad337da..723419e 100644
+--- a/source/Command.cpp
++++ b/source/Command.cpp
+@@ -15,6 +15,10 @@ this program. If not, see <https://www.gnu.org/licenses/>.
+ 
+ #include "Command.h"
+ 
++#ifdef __ANDROID__
++#include "AndroidTouch.h"
++#endif
++
+ #include "DataFile.h"
+ #include "DataNode.h"
+ #include "DataWriter.h"
+@@ -112,6 +116,14 @@ string Command::ReplaceNamesWithKeys(const string &text)
+ // Create a command representing whatever is mapped to the given key code.
+ Command::Command(SDL_Keycode keycode)
+ {
++#ifdef __ANDROID__
++	Command touch = AndroidTouch::ForKey(keycode);
++	if(touch)
++	{
++		*this = touch;
++		return;
++	}
++#endif
+ 	auto it = commandForKeycode.find(keycode);
+ 	if(it != commandForKeycode.end())
+ 		*this = it->second;
+@@ -141,6 +153,10 @@ void Command::ReadKeyboard()
+ #endif
+ 			*this |= it.first;
+ 
++#ifdef __ANDROID__
++	*this |= AndroidTouch::HeldCommands();
++#endif
++
+ 	// Check whether the `Shift` modifier key was pressed for this step.
+ 	if(SDL_GetModState() & KMOD_SHIFT)
+ 		*this |= SHIFT;
+diff --git a/source/main.cpp b/source/main.cpp
+index 299f206..dba7238 100644
+--- a/source/main.cpp
++++ b/source/main.cpp
+@@ -43,6 +43,10 @@ this program. If not, see <https://www.gnu.org/licenses/>.
+ #include "Random.h"
+ #include "Screen.h"
+ #include "SDL.h"
++
++#ifdef __ANDROID__
++#include "AndroidTouch.h"
++#endif
+ #include "image/SpriteSet.h"
+ #include "shader/SpriteShader.h"
+ #include "Statistics.h"
+@@ -265,6 +269,9 @@ int main(int argc, char *argv[])
+ 		CustomEvents::Init();
+ 		// This is the main loop where all the action begins.
+ 		GameLoop(player, queue, conversation, testToRunName, debugMode);
++#ifdef __ANDROID__
++		AndroidTouch::PrepareFrame(false);
++#endif
+ 	}
+ 	catch(Test::known_failure_tag)
+ 	{
+@@ -439,8 +446,16 @@ void GameLoop(PlayerInfo &player, TaskQueue &queue, const Conversation &conversa
+ 				--toggleTimeout;
+ 			chrono::steady_clock::time_point start = chrono::steady_clock::now();
+ 
++#ifdef __ANDROID__
++			AndroidTouch::PrepareFrame(!gamePanels.IsEmpty() && menuPanels.IsEmpty()
++				&& gamePanels.Root() == gamePanels.Top() && !player.GetPlanet() && !player.IsDead());
++#endif
+ 			ProcessEvents();
+ 
++#ifdef __ANDROID__
++			if(!menuPanels.IsEmpty() || gamePanels.Root() != gamePanels.Top() || player.GetPlanet() || player.IsDead())
++				AndroidTouch::PrepareFrame(false);
++#endif
+ 			SDL_Keymod mod = SDL_GetModState();
+ 			Font::ShowUnderlines(mod & KMOD_ALT);
+ 

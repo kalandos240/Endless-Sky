@@ -10,6 +10,7 @@
         android:allowBackup="false"
         android:hasFragileUserData="true"
         android:hardwareAccelerated="true"
+        android:enableOnBackInvokedCallback="false"
         android:isGame="true"
         android:appCategory="game">
         <activity

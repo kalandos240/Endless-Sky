@@ -4,4 +4,24 @@
     <string name="install_no_space">Не хватает места. Освободите внутреннюю память и повторите попытку.</string>
     <string name="install_failed">Не удалось подготовить файлы игры. Попробуйте ещё раз.</string>
     <string name="retry">Повторить</string>
+    <string name="touch_thrust">Тяга</string>
+    <string name="touch_left">←</string>
+    <string name="touch_right">→</string>
+    <string name="touch_reverse">Реверс</string>
+    <string name="touch_fire">Огонь</string>
+    <string name="touch_secondary">Доп. огонь</string>
+    <string name="touch_boost">Форсаж</string>
+    <string name="touch_weapon">Оружие</string>
+    <string name="touch_target">Цель</string>
+    <string name="touch_enemy">Враг</string>
+    <string name="touch_land">Посадка</string>
+    <string name="touch_jump">Прыжок</string>
+    <string name="touch_board">Абордаж</string>
+    <string name="touch_hail">Связь</string>
+    <string name="touch_map">Карта</string>
+    <string name="touch_info">Пилот</string>
+    <string name="touch_pause">Пауза</string>
+    <string name="touch_menu">Меню</string>
+    <string name="touch_hide">Скрыть</string>
+    <string name="touch_show">Кнопки</string>
 </resources>

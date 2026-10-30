@@ -2,6 +2,8 @@ package io.github.kalandos240.endlesssky;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.content.res.Configuration;
+import android.view.KeyEvent;
 import android.util.Log;
 
 import org.libsdl.app.SDLActivity;
@@ -13,6 +15,12 @@ import java.io.InputStream;
 public final class GameActivity extends SDLActivity {
     private File resources;
     private File config;
+    private TouchControls controls;
+
+    static native void nativeSetAction(int action, boolean pressed);
+    static native void nativeResetTouch();
+    static native boolean nativeIsInFlight();
+    private static native void nativeBack();
 
     @Override
     protected void onCreate(Bundle state) {
@@ -32,7 +40,72 @@ public final class GameActivity extends SDLActivity {
         if (resources == null) {
             startActivity(new Intent(this, LauncherActivity.class).putExtra("startupError", true));
             finish();
+        } else if (!mBrokenLibraries && mLayout != null) {
+            nativeResetTouch();
+            controls = new TouchControls(this, mLayout);
         }
+    }
+
+    @Override
+    protected void onPause() {
+        if (controls != null) {
+            controls.focus(false);
+        }
+        super.onPause();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (controls != null) {
+            controls.focus(hasWindowFocus());
+        }
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean focused) {
+        if (controls != null) {
+            controls.focus(focused);
+        }
+        super.onWindowFocusChanged(focused);
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (event.getKeyCode() == KeyEvent.KEYCODE_BACK && !mBrokenLibraries
+                && !isScreenKeyboardShown()) {
+            if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
+                nativeBack();
+            }
+            return true;
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration configuration) {
+        if (controls != null) {
+            controls.release();
+        }
+        super.onConfigurationChanged(configuration);
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (!mBrokenLibraries) {
+            nativeBack();
+        } else {
+            super.onBackPressed();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (controls != null) {
+            controls.dispose();
+            controls = null;
+        }
+        super.onDestroy();
     }
 
     @Override
