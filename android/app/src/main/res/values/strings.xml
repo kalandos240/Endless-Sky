@@ -24,4 +24,21 @@
     <string name="touch_menu">Menu</string>
     <string name="touch_hide">Hide</string>
     <string name="touch_show">Controls</string>
+    <string name="play_game">Play</string>
+    <string name="export_pilots">Export pilots and settings</string>
+    <string name="import_pilots">Restore a backup</string>
+    <string name="undo_restore">Return to previous saves</string>
+    <string name="preparing_saves">Preparing saved pilots…</string>
+    <string name="backup_intro">Keep a backup before reinstalling. Pilots and game settings are included; plugins are not.</string>
+    <string name="exporting_pilots">Saving a backup…</string>
+    <string name="export_complete">Backup saved. Keep this file outside the app.</string>
+    <string name="checking_backup">Checking the backup…</string>
+    <string name="confirm_backup">Backup checked. Confirm restoration.</string>
+    <string name="restore_confirm">Profiles or saves: %1$d. Files: %2$d. This replaces current pilots and game settings. Existing data will be kept for rollback.</string>
+    <string name="undo_confirm">Return to the saves from before the last restoration? The current saves will be kept as the previous copy.</string>
+    <string name="restore_now">Restore</string>
+    <string name="restoring_pilots">Restoring saved pilots…</string>
+    <string name="restore_complete">Restored. Choose your pilot in the game menu.</string>
+    <string name="backup_failed">The operation failed. Existing saves are protected. For restoration, choose a backup created by this app.</string>
+    <string name="file_picker_unavailable">No file picker is available on this device.</string>
 </resources>

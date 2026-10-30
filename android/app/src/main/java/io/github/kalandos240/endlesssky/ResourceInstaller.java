@@ -11,6 +11,8 @@ import java.nio.channels.FileLock;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.DirectoryStream;
+import java.nio.file.LinkOption;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.FileVisitResult;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -148,7 +150,11 @@ public final class ResourceInstaller {
     }
 
     public File installedDirectory(Manifest manifest) throws IOException {
-        File directory = new File(new File(filesDirectory, "resources"), manifest.version);
+        File root = new File(filesDirectory, "resources");
+        if (!Files.isDirectory(root.toPath(), LinkOption.NOFOLLOW_LINKS)) {
+            return null;
+        }
+        File directory = new File(root, manifest.version);
         File marker = new File(directory, ".complete");
         if (!marker.isFile()) {
             return null;
@@ -184,13 +190,18 @@ public final class ResourceInstaller {
             }
             File installed = installedDirectory(manifest);
             if (installed != null) {
+                pruneOldResources(manifest.version, true);
                 progress.update(manifest.totalBytes, manifest.totalBytes);
                 return installed;
             }
             File resources = new File(filesDirectory, "resources");
             Files.createDirectories(resources.toPath());
+            if (!Files.isDirectory(resources.toPath(), LinkOption.NOFOLLOW_LINKS)) {
+                throw new IOException("Resource root must be a real directory");
+            }
             File staging = new File(resources, ".installing-" + manifest.version);
             deleteTree(staging.toPath()); // Discard an interrupted extraction before the space check.
+            pruneOldResources(manifest.version, false);
             long available = freeBytes.getAsLong();
             if (available < 32L * 1024 * 1024
                     || manifest.totalBytes > available - 32L * 1024 * 1024) {
@@ -208,11 +219,33 @@ public final class ResourceInstaller {
                 // A corrupt install may exist, but other versions and saves stay intact.
                 deleteTree(destination.toPath());
                 Files.move(staging.toPath(), destination.toPath());
+                pruneOldResources(manifest.version, true);
                 progress.update(manifest.totalBytes, manifest.totalBytes);
                 return destination;
             } finally {
                 deleteTree(staging.toPath());
             }
+        }
+    }
+
+    // Only installer-owned names under resources/ are eligible. Cleanup never follows links.
+    // Failed cleanup does not make a verified installation unusable; retry on the next launch.
+    private void pruneOldResources(String currentVersion, boolean completeVersions) {
+        Path root = new File(filesDirectory, "resources").toPath();
+        try (DirectoryStream<Path> paths = Files.newDirectoryStream(root)) {
+            for (Path path : paths) {
+                String name = path.getFileName().toString();
+                if (!name.equals(currentVersion) && ((completeVersions && name.matches("[a-f0-9]{64}"))
+                        || name.matches("\\.installing-[a-f0-9]{64}"))) {
+                    try {
+                        deleteTree(path);
+                    } catch (IOException | SecurityException error) {
+                        System.err.println("Endless Sky resource cleanup deferred: " + error.getMessage());
+                    }
+                }
+            }
+        } catch (IOException | SecurityException error) {
+            System.err.println("Endless Sky resource cleanup deferred: " + error.getMessage());
         }
     }
 

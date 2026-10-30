@@ -25,6 +25,11 @@ jobs:
           mkdir -p build/java-tests
           javac -Xlint:all -Werror -d build/java-tests android/app/src/main/java/io/github/kalandos240/endlesssky/ResourceInstaller.java tests/java/ResourceInstallerTest.java
           java -cp build/java-tests io.github.kalandos240.endlesssky.ResourceInstallerTest build/installer-fixtures
+      - name: Test portable pilot backups and restore recovery
+        run: |
+          mkdir -p build/backup-tests
+          javac -Xlint:all -Werror -d build/java-tests android/app/src/main/java/io/github/kalandos240/endlesssky/SaveBackup.java tests/java/SaveBackupTest.java
+          java -cp build/java-tests io.github.kalandos240.endlesssky.SaveBackupTest build/backup-tests
       - name: Test multi-touch pointer ownership
         run: |
           javac -Xlint:all -Werror -d build/java-tests android/app/src/main/java/io/github/kalandos240/endlesssky/TouchActions.java android/app/src/main/java/io/github/kalandos240/endlesssky/TouchInputState.java tests/java/TouchInputStateTest.java

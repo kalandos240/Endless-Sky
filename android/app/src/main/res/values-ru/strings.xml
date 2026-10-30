@@ -24,4 +24,21 @@
     <string name="touch_menu">Меню</string>
     <string name="touch_hide">Скрыть</string>
     <string name="touch_show">Кнопки</string>
+    <string name="play_game">Играть</string>
+    <string name="export_pilots">Сохранить копию пилотов и настроек</string>
+    <string name="import_pilots">Восстановить из копии</string>
+    <string name="undo_restore">Вернуть предыдущие сохранения</string>
+    <string name="preparing_saves">Подготовка сохранений…</string>
+    <string name="backup_intro">Сохраните копию перед переустановкой. В неё входят пилоты и игровые настройки, без плагинов.</string>
+    <string name="exporting_pilots">Сохранение копии…</string>
+    <string name="export_complete">Копия сохранена. Храните этот файл вне приложения.</string>
+    <string name="checking_backup">Проверка копии…</string>
+    <string name="confirm_backup">Копия проверена. Подтвердите восстановление.</string>
+    <string name="restore_confirm">Профилей или сохранений: %1$d. Файлов: %2$d. Текущие пилоты и игровые настройки будут заменены. Имеющиеся данные сохранятся для отката.</string>
+    <string name="undo_confirm">Вернуть сохранения, которые были до последнего восстановления? Текущие сохранятся как предыдущая копия.</string>
+    <string name="restore_now">Восстановить</string>
+    <string name="restoring_pilots">Восстановление сохранений…</string>
+    <string name="restore_complete">Восстановлено. Выберите пилота в игровом меню.</string>
+    <string name="backup_failed">Не удалось выполнить операцию. Имеющиеся сохранения защищены. Для восстановления выберите копию, созданную этим приложением.</string>
+    <string name="file_picker_unavailable">На устройстве недоступен выбор файла.</string>
 </resources>

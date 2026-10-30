@@ -69,6 +69,21 @@ public final class ResourceInstallerTest {
         check(Files.readString(save).equals("pilot save"), "Installer changed a save");
         File updated = installer.ensureInstalled(assets(fixtures, "updated"), (done, total) -> {});
         check(!updated.equals(installed), "Updated content reused the old directory");
+        check(!installed.exists(), "Verified update retained an obsolete resource version");
+        check(Files.readString(save).equals("pilot save"), "Resource pruning modified a pilot");
+        Path stale = root.resolve("resources/.installing-" + "a".repeat(64));
+        Files.createDirectories(stale);
+        Files.writeString(stale.resolve("partial"), "unfinished");
+        Path unmanaged = root.resolve("resources/user-folder");
+        Files.createDirectories(unmanaged);
+        Files.writeString(unmanaged.resolve("keep"), "unmanaged file");
+        Path link = root.resolve("resources/" + "b".repeat(64));
+        Files.createSymbolicLink(link, root.resolve("config"));
+        installer.ensureInstalled(assets(fixtures, "updated"), (done, total) -> {});
+        check(!Files.exists(stale), "Abandoned extraction was not removed");
+        check(!Files.exists(link, java.nio.file.LinkOption.NOFOLLOW_LINKS), "Obsolete resource symlink survived cleanup");
+        check(Files.readString(save).equals("pilot save"), "Pruning followed a link into saves");
+        check(Files.readString(unmanaged.resolve("keep")).equals("unmanaged file"), "Unmanaged resource folder removed");
 
         for (String variant : Arrays.asList("corrupt", "missing", "extra", "duplicate", "oversized", "traversal")) {
             Path directory = Files.createTempDirectory(root, "bad-");
@@ -77,6 +92,20 @@ public final class ResourceInstallerTest {
             check(fresh.installedDirectory(manifest(good)) == null, variant + " published a ready marker");
             check(!Files.exists(directory.resolve("outside.txt")), "ZIP traversal escaped destination");
         }
+
+        Path failedUpdate = Files.createTempDirectory(root, "failed-update-");
+        ResourceInstaller beforeFailure = new ResourceInstaller(failedUpdate.toFile(), () -> Long.MAX_VALUE);
+        File oldPack = beforeFailure.ensureInstalled(good, (done, total) -> {});
+        expectFailure(beforeFailure, name -> assets(fixtures, name.endsWith(".manifest") ? "updated" : "corrupt").open(name));
+        check(oldPack.exists() && beforeFailure.installedDirectory(manifest(good)) != null,
+                "Corrupt update pruned the previous verified resources");
+        Path staleBeforeSpaceCheck = failedUpdate.resolve("resources/.installing-" + "c".repeat(64));
+        Files.createDirectories(staleBeforeSpaceCheck);
+        Files.writeString(staleBeforeSpaceCheck.resolve("partial"), "unfinished");
+        ResourceInstaller reclaiming = new ResourceInstaller(failedUpdate.toFile(),
+                () -> Files.exists(staleBeforeSpaceCheck) ? 1L : Long.MAX_VALUE);
+        check(reclaiming.ensureInstalled(assets(fixtures, "updated"), (done, total) -> {}).isDirectory(),
+                "Abandoned staging was not reclaimed before checking free space");
 
         Path interrupted = Files.createTempDirectory(root, "interrupted-");
         ResourceInstaller recovering = new ResourceInstaller(interrupted.toFile(), () -> Long.MAX_VALUE);

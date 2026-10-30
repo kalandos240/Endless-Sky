@@ -16,6 +16,9 @@ public final class GameActivity extends SDLActivity {
     private File resources;
     private File config;
     private TouchControls controls;
+    private static volatile GameActivity currentSession;
+
+    static boolean isRunning() { return currentSession != null; }
 
     static native void nativeSetAction(int action, boolean pressed);
     static native void nativeResetTouch();
@@ -24,7 +27,8 @@ public final class GameActivity extends SDLActivity {
 
     @Override
     protected void onCreate(Bundle state) {
-        try (InputStream input = getAssets().open("resources.manifest")) {
+        boolean recoveryNeeded = new SaveBackup(getFilesDir()).needsRecovery();
+        if (!recoveryNeeded) try (InputStream input = getAssets().open("resources.manifest")) {
             ResourceInstaller.Manifest manifest = ResourceInstaller.Manifest.read(input);
             resources = new ResourceInstaller(getFilesDir()).installedDirectory(manifest);
             config = new File(getFilesDir(), "config");
@@ -38,9 +42,10 @@ public final class GameActivity extends SDLActivity {
         // SDL starts its native main thread only after resume and surface readiness.
         super.onCreate(state);
         if (resources == null) {
-            startActivity(new Intent(this, LauncherActivity.class).putExtra("startupError", true));
+            startActivity(new Intent(this, LauncherActivity.class).putExtra("startupError", !recoveryNeeded));
             finish();
         } else if (!mBrokenLibraries && mLayout != null) {
+            currentSession = this;
             nativeResetTouch();
             controls = new TouchControls(this, mLayout);
         }
@@ -105,7 +110,16 @@ public final class GameActivity extends SDLActivity {
             controls.dispose();
             controls = null;
         }
-        super.onDestroy();
+        try {
+            super.onDestroy();
+        } finally {
+            if (currentSession == this) {
+                currentSession = null;
+                // SDL has joined the native main thread and flushed game preferences above.
+                // Endless Sky retains static universe/profile caches; start the next session in a fresh process.
+                android.os.Process.killProcess(android.os.Process.myPid());
+            }
+        }
     }
 
     @Override
