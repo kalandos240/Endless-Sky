@@ -2,9 +2,9 @@
 
 Перенос [Endless Sky](https://github.com/endless-sky/endless-sky) на Android для последующего выпуска в RuStore.
 
-**Статус: тестовый APK 0.2 с базовым сенсорным управлением успешно собран в GitHub Actions.** Проверены нативные библиотеки arm64, ресурсы, SDL/JNI-функции и debug-подпись. Запуск на физическом устройстве и удобство расположения кнопок пока не проверены. В код 0.3 добавлены перенос пилотов и очистка ресурсов; сборка 0.3 проходит проверку.
+**Статус: тестовый APK 0.3 с сенсорным управлением, переносом пилотов и откатом восстановления успешно собран в GitHub Actions.** Проверены нативные библиотеки arm64, ресурсы, SDL/JNI-функции и debug-подпись. Файловая логика копий и очистки проверена автоматически; запуск, file picker и поведение после импорта на физическом устройстве пока не проверены.
 
-[Предыдущий APK 0.2 (ZIP)](https://github.com/kalandos240/Endless-Sky/actions/runs/41111252905/artifacts/13003927204) · [Успешная сборка](https://github.com/kalandos240/Endless-Sky/actions/runs/41111252905). Артефакты хранятся 14 дней; затем APK можно пересобрать workflow **Android debug APK**. Исходный commit сборки: `64706d908818c4a1889d0aa9be213ea15d6b7902`.
+[Скачать APK 0.3 в ZIP](https://github.com/kalandos240/Endless-Sky/actions/runs/41119313526/artifacts/13006824103) · [Успешная сборка](https://github.com/kalandos240/Endless-Sky/actions/runs/41119313526). Артефакты хранятся 14 дней; затем APK можно пересобрать workflow **Android debug APK**. Исходный commit сборки: `ecf82585bb901a6bb5ffd5c90add83d429391c46`.
 
 ## Подготовка и сборка
 
@@ -70,6 +70,9 @@ python3 tests/make_installer_fixtures.py
 mkdir -p build/java-tests
 javac -Xlint:all -Werror -d build/java-tests android/app/src/main/java/io/github/kalandos240/endlesssky/ResourceInstaller.java tests/java/ResourceInstallerTest.java
 java -cp build/java-tests io.github.kalandos240.endlesssky.ResourceInstallerTest build/installer-fixtures
+mkdir -p build/backup-tests
+javac -Xlint:all -Werror -d build/java-tests android/app/src/main/java/io/github/kalandos240/endlesssky/SaveBackup.java tests/java/SaveBackupTest.java
+java -cp build/java-tests io.github.kalandos240.endlesssky.SaveBackupTest build/backup-tests
 ```
 
 Проверены детерминированность ZIP и манифеста, применение upstream-патча, повторная установка, повреждённые/неполные/повторные/лишние ZIP-записи, недопустимые пути, нехватка места, прерывание и восстановление, сохранность файлов пилота. Полный пакет игры также установлен и проверен: 7402 файла, 403 688 392 байта. Java-код обеих Activity и официального SDL bridge скомпилирован против Android API 35 отдельно от Gradle (с временным `R` для проверки типов); это не заменяет сборку APK. Эти проверки запускаются также workflow **Port checks** (отдельная проверка типов Activity через SDK выполнялась локально; полный APK собран в CI).
