@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Endless Sky</string>
+    <string name="installing_resources">Preparing the galaxy…</string>
+    <string name="install_no_space">Not enough space. Free up internal storage and try again.</string>
+    <string name="install_failed">Could not prepare game files. Please try again.</string>
+    <string name="retry">Try again</string>
+</resources>

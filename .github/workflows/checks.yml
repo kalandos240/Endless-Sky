@@ -1,0 +1,32 @@
+name: Port checks
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  resources:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Test deterministic resource packages
+        run: python -m unittest discover -s tests -v
+      - name: Generate cross-language fixtures
+        run: python tests/make_installer_fixtures.py
+      - name: Test the production Java installer
+        run: |
+          mkdir -p build/java-tests
+          javac -Xlint:all -Werror -d build/java-tests android/app/src/main/java/io/github/kalandos240/endlesssky/ResourceInstaller.java tests/java/ResourceInstallerTest.java
+          java -cp build/java-tests io.github.kalandos240.endlesssky.ResourceInstallerTest build/installer-fixtures
+      - name: Verify upstream patches and repeatability
+        run: |
+          python tools/prepare_upstream.py
+          python tools/prepare_upstream.py
+          git -C build/upstream diff --check

@@ -1,0 +1,39 @@
+{
+  "name": "endless-sky-android",
+  "version-string": "0.1.0",
+  "builtin-baseline": "a3476c776ee5604e46bc6f71845a5e35026e1865",
+  "dependencies": [
+    {
+      "name": "sdl2",
+      "default-features": false
+    },
+    "libpng",
+    "libjpeg-turbo",
+    {
+      "name": "libavif",
+      "features": [
+        "dav1d"
+      ]
+    },
+    "libmad",
+    "libuuid",
+    "libflac",
+    "minizip",
+    "openal-soft",
+    "zlib"
+  ],
+  "features": {
+    "system-libs": {
+      "description": "Compatibility with upstream CMake feature selection."
+    },
+    "sdl2": {
+      "description": "SDL2 is an unconditional Android dependency."
+    }
+  },
+  "overrides": [
+    {
+      "name": "sdl2",
+      "version": "2.32.10"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+set(VCPKG_TARGET_ARCHITECTURE arm64)
+set(VCPKG_CMAKE_SYSTEM_NAME Android)
+set(VCPKG_CRT_LINKAGE dynamic)
+set(VCPKG_LIBRARY_LINKAGE static)
+set(VCPKG_BUILD_TYPE release)
+# SDL's JNI bridge must be shared. Keep OpenAL replaceable as a shared LGPL library.
+if(PORT STREQUAL "sdl2" OR PORT STREQUAL "openal-soft")
+    set(VCPKG_LIBRARY_LINKAGE dynamic)
+endif()
+set(VCPKG_CMAKE_CONFIGURE_OPTIONS
+    -DANDROID_PLATFORM=android-26
+    -DANDROID_STL=c++_shared
+)

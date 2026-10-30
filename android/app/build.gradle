@@ -1,0 +1,99 @@
+plugins {
+    id 'com.android.application'
+}
+
+def portRoot = rootProject.projectDir.parentFile
+def sourceRoot = new File(portRoot, 'build/upstream')
+def sdlRoot = new File(portRoot, 'build/sdl2')
+def vcpkgRoot = new File(portRoot, 'build/vcpkg')
+def assetsRoot = new File(portRoot, 'build/android-assets')
+
+android {
+    namespace 'io.github.kalandos240.endlesssky'
+    compileSdk 35
+    ndkVersion '28.2.13676358'
+
+    defaultConfig {
+        // Development ID; confirm the permanent store ID before the first release.
+        applicationId 'io.github.kalandos240.endlesssky'
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName '0.1.0-dev'
+        ndk { abiFilters 'arm64-v8a' }
+        externalNativeBuild {
+            cmake {
+                arguments "-DCMAKE_TOOLCHAIN_FILE=${vcpkgRoot}/scripts/buildsystems/vcpkg.cmake",
+                        "-DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=${android.ndkDirectory}/build/cmake/android.toolchain.cmake",
+                        '-DVCPKG_TARGET_TRIPLET=arm64-android-es',
+                        "-DVCPKG_OVERLAY_TRIPLETS=${portRoot}/android/native/triplets",
+                        "-DVCPKG_MANIFEST_DIR=${portRoot}/android/native",
+                        "-DVCPKG_INSTALLED_DIR=${portRoot}/build/vcpkg-installed",
+                        '-DANDROID_STL=c++_shared', '-DBUILD_TESTING=OFF'
+                targets 'EndlessSky'
+            }
+        }
+    }
+    buildTypes {
+        debug { applicationIdSuffix '.debug' }
+        release {
+            // Signing is supplied locally by the publisher, never checked into git.
+            minifyEnabled false
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    sourceSets {
+        main {
+            java.srcDir new File(sdlRoot, 'android-project/app/src/main/java')
+            assets.srcDir assetsRoot
+            res.srcDir new File(portRoot, 'build/android-res')
+        }
+    }
+    androidResources {
+        // The ZIP is already compressed; this also permits efficient asset access.
+        noCompress += ['zip']
+    }
+    externalNativeBuild {
+        cmake {
+            path '../native/CMakeLists.txt'
+            version '3.31.6'
+        }
+    }
+    packaging {
+        jniLibs { useLegacyPackaging false }
+    }
+}
+
+tasks.register('checkPreparedSources') {
+    doLast {
+        [new File(sourceRoot, 'CMakeLists.txt'),
+         new File(sdlRoot, 'android-project/app/src/main/java/org/libsdl/app/SDLActivity.java'),
+         new File(vcpkgRoot, 'scripts/buildsystems/vcpkg.cmake'),
+         new File(assetsRoot, 'resources.manifest'),
+         new File(assetsRoot, 'resources.zip')].each { required ->
+            if (!required.isFile()) {
+                throw new GradleException('Run python3 tools/prepare_android.py from the repository root first. Missing: ' + required)
+            }
+        }
+    }
+}
+tasks.named('preBuild').configure { dependsOn 'checkPreparedSources' }
+
+// Ship the notices belonging to the exact native dependencies used in this APK.
+android.applicationVariants.all { variant ->
+    def cap = variant.name.capitalize()
+    def licenseDirectory = layout.buildDirectory.dir("generated/legalAssets/${variant.name}")
+    def collectLicenses = tasks.register("collect${cap}NativeLicenses", Sync) {
+        dependsOn "externalNativeBuild${cap}"
+        from(new File(portRoot, 'build/vcpkg-installed/arm64-android-es/share')) {
+            include '**/copyright'
+            into 'licenses/vcpkg'
+        }
+        into licenseDirectory
+    }
+    android.sourceSets.getByName(variant.name).assets.srcDir licenseDirectory
+    tasks.named("merge${cap}Assets").configure { dependsOn collectLicenses }
+}

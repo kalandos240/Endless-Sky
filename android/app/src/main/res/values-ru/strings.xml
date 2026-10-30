@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Endless Sky</string>
+    <string name="installing_resources">Готовим галактику…</string>
+    <string name="install_no_space">Не хватает места. Освободите внутреннюю память и повторите попытку.</string>
+    <string name="install_failed">Не удалось подготовить файлы игры. Попробуйте ещё раз.</string>
+    <string name="retry">Повторить</string>
+</resources>

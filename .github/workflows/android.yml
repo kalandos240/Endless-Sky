@@ -1,0 +1,68 @@
+name: Android debug APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'android/**'
+      - 'tools/**'
+      - 'patches/**'
+      - 'upstream-revision.txt'
+      - '.github/workflows/android.yml'
+permissions:
+  contents: read
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      VCPKG_MAX_CONCURRENCY: 2
+      CMAKE_BUILD_PARALLEL_LEVEL: 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android toolchain and native build tools
+        run: |
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;28.2.13676358' 'cmake;3.31.6'
+          sudo apt-get update
+          sudo apt-get install -y autoconf automake libtool pkg-config nasm
+      - name: Prepare pinned game sources, SDL bridge, vcpkg, and assets
+        run: python tools/prepare_android.py
+      - name: Verify the complete resource package through the Java installer
+        run: |
+          mkdir -p build/java-tests
+          javac -Xlint:all -Werror -d build/java-tests android/app/src/main/java/io/github/kalandos240/endlesssky/ResourceInstaller.java tests/java/ResourcePackSmokeTest.java
+          java -cp build/java-tests io.github.kalandos240.endlesssky.ResourcePackSmokeTest build/android-assets build/resource-smoke
+      - name: Build arm64 development APK
+        run: |
+          export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/28.2.13676358"
+          cd android
+          ./gradlew assembleDebug --stacktrace --no-daemon
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: endless-sky-arm64-debug
+          path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload native build diagnostics
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: android-build-diagnostics
+          path: |
+            android/app/.cxx/**/CMakeFiles/CMakeConfigureLog.yaml
+            android/app/.cxx/**/vcpkg-manifest-install.log
+            build/vcpkg/buildtrees/**/*.log
+          if-no-files-found: ignore
+          retention-days: 7
