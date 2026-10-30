@@ -80,7 +80,17 @@ public final class LauncherActivity extends Activity {
         undo = button(layout, R.string.undo_restore, view -> prepareUndo());
         scroll.addView(layout);
         setContentView(scroll);
-        submit(R.string.preparing_saves, () -> backups.recover(), R.string.backup_intro);
+        submit(R.string.preparing_saves, () -> {
+            backups.recover();
+            try { Files.deleteIfExists(new File(getCacheDir(), "pilot-export.zip").toPath()); }
+            catch (IOException | SecurityException cleanupError) { Log.w("EndlessSky", "Legacy export cache retained", cleanupError); }
+            try (java.nio.file.DirectoryStream<java.nio.file.Path> leftovers = Files.newDirectoryStream(
+                    getCacheDir().toPath(), "pilot-export-*.zip")) {
+                for (java.nio.file.Path leftover : leftovers) { Files.deleteIfExists(leftover); }
+            } catch (IOException | SecurityException cleanupError) {
+                Log.w("EndlessSky", "Export cache cleanup deferred", cleanupError);
+            }
+        }, R.string.backup_intro);
     }
 
     private Button button(LinearLayout parent, int label, View.OnClickListener listener) {
@@ -208,7 +218,7 @@ public final class LauncherActivity extends Activity {
         }
         if (request == EXPORT) {
             submit(R.string.exporting_pilots, () -> {
-                File temporary = new File(getCacheDir(), "pilot-export.zip");
+                File temporary = File.createTempFile("pilot-export-", ".zip", getCacheDir());
                 try {
                     try (OutputStream output = Files.newOutputStream(temporary.toPath())) {
                         backups.exportArchive(output);

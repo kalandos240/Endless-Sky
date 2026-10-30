@@ -128,6 +128,23 @@ public final class SaveBackupTest {
             check(!restorer.needsRecovery(), variant + " left an unfinished preparation");
             check(!Files.exists(root.resolve("outside.txt")), "Backup escaped its staging directory");
         }
+        InputStream disconnectedProvider = new InputStream() {
+            private final ByteArrayInputStream delegate = new ByteArrayInputStream(archive);
+            private int remaining = 512;
+            @Override public int read(byte[] bytes, int offset, int length) throws IOException {
+                if (remaining == 0) { throw new IOException("Document provider disconnected"); }
+                int count = delegate.read(bytes, offset, Math.min(length, remaining));
+                if (count > 0) { remaining -= count; }
+                return count;
+            }
+            @Override public int read() throws IOException {
+                byte[] one = new byte[1];
+                return read(one, 0, 1) == -1 ? -1 : one[0] & 255;
+            }
+        };
+        fails(() -> restorer.prepareRestore(disconnectedProvider));
+        check(Files.exists(target.resolve("config/saves/Пилот Земля.txt")), "Provider failure lost current pilot");
+        check(!restorer.needsRecovery(), "Provider failure retained partial staging");
         Path empty = Files.createTempDirectory(root, "empty-");
         SaveBackup fresh = new SaveBackup(empty.toFile());
         fresh.commit(fresh.prepareRestore(new ByteArrayInputStream(archive)));
