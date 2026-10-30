@@ -1,0 +1,162 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index b327543..e14f4a9 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -73,6 +73,16 @@ project("Endless Sky" VERSION 0.11.4
+ 	HOMEPAGE_URL https://endless-sky.github.io/
+ 	LANGUAGES CXX)
+ 
++# Android is loaded by SDLActivity as libmain.so, using the NDK's GLES implementation.
++if(ANDROID)
++	if(ES_USE_SDL3)
++		message(FATAL_ERROR "The initial Android port requires SDL2 and its matching SDLActivity.")
++	endif()
++	set(ES_GLES ON CACHE BOOL "Build the game with OpenGL ES" FORCE)
++	set(BUILD_TESTING OFF CACHE BOOL "Build desktop test runners" FORCE)
++	set(CMAKE_POSITION_INDEPENDENT_CODE ON)
++endif()
++
+ # Find the needed library dependencies.
+ if(ES_USE_SDL3)
+ 	find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3)
+@@ -84,7 +94,7 @@ endif()
+ find_package(PNG REQUIRED)
+ find_package(JPEG REQUIRED)
+ find_package(libavif REQUIRED)
+-if(NOT APPLE)
++if(NOT APPLE AND NOT ES_GLES)
+ 	find_package(GLEW REQUIRED)
+ endif()
+ 
+@@ -168,7 +178,7 @@ add_library(ExternalLibraries INTERFACE)
+ target_link_libraries(EndlessSkyLib PUBLIC ExternalLibraries)
+ 
+ # Enable sanitizers on debug builds, depending on platform support.
+-if(NOT WIN32 AND NOT CYGWIN)
++if(NOT WIN32 AND NOT CYGWIN AND NOT ANDROID)
+ 	set(SANITIZER_OPTS "-g" "-fsanitize=address,undefined,pointer-compare,pointer-subtract,unreachable,builtin,integer-divide-by-zero,vla-bound,null,return,signed-integer-overflow,bounds,alignment,bool,enum,pointer-overflow")
+ 	if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+ 		list(APPEND SANITIZER_OPTS "-fno-omit-frame-pointer" "-fsanitize=leak,vptr")
+@@ -193,6 +203,9 @@ target_link_libraries(ExternalLibraries INTERFACE ${SDL_LIBRARIES} PNG::PNG JPEG
+ # Link the needed OS-specific dependencies, if any.
+ if(WIN32)
+ 	target_link_libraries(ExternalLibraries INTERFACE rpcrt4 winmm ntdll psapi)
++elseif(ANDROID)
++	# Bionic provides pthread APIs in libc; there is no separate libpthread.
++	target_link_libraries(ExternalLibraries INTERFACE Threads::Threads)
+ elseif(ES_LINK_LIBATOMIC)
+ 	target_link_libraries(ExternalLibraries INTERFACE pthread atomic)
+ else()
+@@ -206,6 +219,12 @@ if(UNIX)
+ 		find_path(UUID_INCLUDE uuid/uuid.h /usr/local/include /usr/include)
+ 		target_link_libraries(ExternalLibraries INTERFACE "${UUID_LIB}")
+ 		target_include_directories(ExternalLibraries INTERFACE "${UUID_INCLUDE}")
++	elseif(ANDROID)
++		# UUID is not part of Bionic; require a cross-compiled libuuid dependency.
++		find_path(UUID_INCLUDE uuid/uuid.h REQUIRED)
++		find_library(UUID_LIB uuid REQUIRED)
++		target_include_directories(ExternalLibraries INTERFACE "${UUID_INCLUDE}")
++		target_link_libraries(ExternalLibraries INTERFACE "${UUID_LIB}")
+ 	elseif(NOT ES_USE_VCPKG OR ES_USE_SYSTEM_LIBRARIES)
+ 		find_library(UUID_LIB uuid)
+ 		target_link_libraries(ExternalLibraries INTERFACE "${UUID_LIB}")
+@@ -217,8 +236,14 @@ endif()
+ 
+ # Link with OpenGL or OpenGL ES.
+ if(ES_GLES)
+-	find_package(OpenGL REQUIRED OpenGL EGL)
+-	target_link_libraries(ExternalLibraries INTERFACE OpenGL::OpenGL OpenGL::EGL)
++	if(ANDROID)
++		find_library(GLES_LIBRARY GLESv3 REQUIRED)
++		find_library(EGL_LIBRARY EGL REQUIRED)
++		target_link_libraries(ExternalLibraries INTERFACE "${GLES_LIBRARY}" "${EGL_LIBRARY}")
++	else()
++		find_package(OpenGL REQUIRED OpenGL EGL)
++		target_link_libraries(ExternalLibraries INTERFACE OpenGL::OpenGL OpenGL::EGL)
++	endif()
+ 	target_compile_definitions(EndlessSkyLib PUBLIC ES_GLES)
+ else()
+ 	# The Steam runtime can't rely on GLVND being available, so link against the legacy interface.
+@@ -250,7 +275,10 @@ if(BUILD_TESTING)
+ endif()
+ 
+ # Create game target.
+-if(APPLE AND ES_CREATE_BUNDLE)
++if(ANDROID)
++	add_library(EndlessSky SHARED source/main.cpp)
++	set_target_properties(EndlessSky PROPERTIES OUTPUT_NAME main)
++elseif(APPLE AND ES_CREATE_BUNDLE)
+ 	add_executable(EndlessSky MACOSX_BUNDLE source/main.cpp)
+ 
+ 	# MacOS bundles are a bit special and need every resource specified when
+@@ -309,7 +337,10 @@ else()
+ endif()
+ 
+ # Link with the library dependencies.
+-target_link_libraries(EndlessSky PRIVATE ExternalLibraries EndlessSkyLib $<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>)
++target_link_libraries(EndlessSky PRIVATE ExternalLibraries EndlessSkyLib)
++if(NOT ANDROID)
++	target_link_libraries(EndlessSky PRIVATE $<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>)
++endif()
+ 
+ # Copy the MinGW runtime DLLs if necessary.
+ if(MINGW AND WIN32)
+@@ -324,7 +355,9 @@ if(MINGW AND WIN32)
+ endif()
+ 
+ # Installation configurations.
+-if(APPLE)
++if(ANDROID)
++	# APK packaging is handled by the Android application, not desktop installation rules.
++elseif(APPLE)
+ 	install(TARGETS EndlessSky CONFIGURATIONS Release BUNDLE DESTINATION .)
+ elseif(WIN32)
+ 	# Install the binary.
+diff --git a/source/Files.cpp b/source/Files.cpp
+index 96f5e89..40ee640 100644
+--- a/source/Files.cpp
++++ b/source/Files.cpp
+@@ -111,6 +111,13 @@ void Files::Init(const char *const *argv)
+ 
+ 	if(resources.empty())
+ 	{
++#ifdef __ANDROID__
++		// The Android launcher must extract bundled assets before starting SDL_main.
++		const char *internalPath = SDL_AndroidGetInternalStoragePath();
++		if(!internalPath)
++			throw runtime_error("Unable to get Android internal storage path!");
++		resources = filesystem::path(internalPath) / "resources";
++#else
+ 		// Find the path to the resource directory. This will depend on the
+ 		// operating system, and can be overridden by a command line argument.
+ #ifdef ES_USE_SDL3
+@@ -142,6 +149,7 @@ void Files::Init(const char *const *argv)
+ 			resources = LOCAL_PATH / RESOURCE_PATH;
+ 		else if(IsParent(STANDARD_PATH, resources))
+ 			resources = STANDARD_PATH / RESOURCE_PATH;
++#endif
+ #endif
+ 	}
+ 	// If the resources are not here, search in the directories containing this
+@@ -149,6 +157,9 @@ void Files::Init(const char *const *argv)
+ 	// resources embedded within it.
+ 	while(!Exists(resources / "credits.txt"))
+ 	{
++#ifdef __ANDROID__
++		throw runtime_error("Android game resources have not been installed!");
++#endif
+ 		if(!resources.has_parent_path() || resources.parent_path() == resources)
+ 			throw runtime_error("Unable to find the resource directories!");
+ 		resources = resources.parent_path();
+diff --git a/source/main.cpp b/source/main.cpp
+index dfbade2..299f206 100644
+--- a/source/main.cpp
++++ b/source/main.cpp
+@@ -42,6 +42,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
+ #include "PrintData.h"
+ #include "Random.h"
+ #include "Screen.h"
++#include "SDL.h"
+ #include "image/SpriteSet.h"
+ #include "shader/SpriteShader.h"
+ #include "Statistics.h"
