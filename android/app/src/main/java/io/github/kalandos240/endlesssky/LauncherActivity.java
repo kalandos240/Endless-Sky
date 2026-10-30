@@ -216,6 +216,12 @@ public final class LauncherActivity extends Activity {
             controls();
             return;
         }
+        // SAF uses content URIs. A file:// result must never redirect export into private app data.
+        if (!"content".equals(uri.getScheme())) {
+            status.setText(R.string.backup_failed);
+            controls();
+            return;
+        }
         if (request == EXPORT) {
             submit(R.string.exporting_pilots, () -> {
                 File temporary = File.createTempFile("pilot-export-", ".zip", getCacheDir());
