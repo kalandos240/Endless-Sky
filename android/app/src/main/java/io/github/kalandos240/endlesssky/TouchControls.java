@@ -236,11 +236,19 @@ final class TouchControls {
         WindowInsets window = root.getRootWindowInsets();
         if (window != null) {
             if (Build.VERSION.SDK_INT >= 30) {
-                Insets insets = window.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
+                Insets insets = window.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout()
+                        | WindowInsets.Type.systemGestures());
                 left += insets.left; top += insets.top; right -= insets.right; bottom -= insets.bottom;
             } else {
                 left += window.getSystemWindowInsetLeft(); top += window.getSystemWindowInsetTop();
                 right -= window.getSystemWindowInsetRight(); bottom -= window.getSystemWindowInsetBottom();
+                if (Build.VERSION.SDK_INT >= 29) {
+                    Insets gestures = window.getSystemGestureInsets();
+                    left = Math.max(left, gestures.left + dp(8));
+                    right = Math.min(right, root.getWidth() - gestures.right - dp(8));
+                    top = Math.max(top, gestures.top + dp(8));
+                    bottom = Math.min(bottom, root.getHeight() - gestures.bottom - dp(8));
+                }
                 if (Build.VERSION.SDK_INT >= 28 && window.getDisplayCutout() != null) {
                     left = Math.max(left, window.getDisplayCutout().getSafeInsetLeft() + dp(8));
                     right = Math.min(right, root.getWidth() - window.getDisplayCutout().getSafeInsetRight() - dp(8));

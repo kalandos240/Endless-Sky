@@ -3,11 +3,15 @@
 import argparse
 import struct
 import zipfile
+import tempfile
+import shutil
+import subprocess
+from pathlib import Path
 
 REQUIRED_LIBRARIES = {'libmain.so', 'libSDL2.so', 'libopenal.so', 'libc++_shared.so'}
 
 
-def check_apk(path):
+def check_apk(path, readelf=None):
     with zipfile.ZipFile(path) as archive:
         names = archive.namelist()
         libraries = [name for name in names if name.startswith('lib/') and name.endswith('.so')]
@@ -34,10 +38,26 @@ def check_apk(path):
             raise ValueError('Native dependency license notices are missing')
         if 'assets/licenses/SDL2.txt' not in names:
             raise ValueError('SDL license notice is missing')
+        if readelf:
+            prefix = 'Java_io_github_kalandos240_endlesssky_GameActivity_'
+            required = {'SDL_main', *(prefix + name for name in
+                         ('nativeSetAction', 'nativeResetTouch', 'nativeIsInFlight', 'nativeBack'))}
+            with tempfile.TemporaryDirectory() as temporary:
+                main = Path(temporary) / 'libmain.so'
+                with archive.open('lib/arm64-v8a/libmain.so') as source, main.open('wb') as output:
+                    shutil.copyfileobj(source, output)
+                table = subprocess.check_output([readelf, '--dyn-syms', '--wide', str(main)], text=True)
+                exports = {line.split()[-1].split('@')[0] for line in table.splitlines()
+                           if line.strip() and ' UND ' not in line}
+                if not required <= exports:
+                    raise ValueError(f'Missing SDL/JNI exports: {required - exports}')
+            print('SDL entry point and all four touch JNI exports verified')
     print(f'APK validated: {len(libraries)} arm64 libraries, resource pack, dependency notices')
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('apk')
-    check_apk(parser.parse_args().apk)
+    parser.add_argument('--readelf', help='NDK llvm-readelf for exported SDL/JNI symbol checks')
+    arguments = parser.parse_args()
+    check_apk(arguments.apk, arguments.readelf)
