@@ -45,6 +45,10 @@ final class TouchControls {
                 flight = next;
                 updateVisibility();
             }
+            // Insets can change without changing root bounds (for example a 180-degree rotation).
+            if (flight) {
+                position();
+            }
             handler.postDelayed(this, 150);
         }
     };
