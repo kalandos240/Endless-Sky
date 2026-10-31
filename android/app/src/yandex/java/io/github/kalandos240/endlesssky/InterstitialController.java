@@ -15,10 +15,10 @@ import com.yandex.mobile.ads.interstitial.InterstitialAdEventListener;
 import com.yandex.mobile.ads.interstitial.InterstitialAdLoadListener;
 import com.yandex.mobile.ads.interstitial.InterstitialAdLoader;
 
-/** Opt-in, debug-only SDK integration. Never requests the publisher's live ad unit. */
+/** Opt-in SDK integration. Debug always uses demo ads; release selects the configured unit. */
 final class InterstitialController {
     private static final String TAG = "EndlessSkyAds";
-    private static final String TEST_UNIT = "demo-interstitial-yandex";
+
     private final GameActivity activity;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final AdSchedule schedule = new AdSchedule(SystemClock::elapsedRealtime);
@@ -37,7 +37,7 @@ final class InterstitialController {
     InterstitialController(GameActivity activity) {
         this.activity = activity;
         try {
-            // Test requests only; no assumed consent or location permission.
+            // No assumed consent to personalization or location tracking.
             YandexAds.setUserConsent(false);
             YandexAds.setLocationTracking(false);
             YandexAds.initialize(activity.getApplicationContext(), () -> handler.post(() -> {
@@ -47,7 +47,7 @@ final class InterstitialController {
                 if (active) load();
             }));
         } catch (RuntimeException error) {
-            Log.w(TAG, "Test ad initialization unavailable", error);
+            Log.w(TAG, "Ad initialization unavailable", error);
         }
     }
 
@@ -69,7 +69,7 @@ final class InterstitialController {
         loading = true;
         lastLoad = now;
         try {
-            loader.loadAd(new AdRequest.Builder(TEST_UNIT).build(), new InterstitialAdLoadListener() {
+            loader.loadAd(new AdRequest.Builder(BuildConfig.YANDEX_AD_UNIT).build(), new InterstitialAdLoadListener() {
                 @Override public void onAdLoaded(InterstitialAd ad) {
                     loading = false;
                     if (disposed) {
@@ -82,13 +82,13 @@ final class InterstitialController {
                 }
                 @Override public void onAdFailedToLoad(AdRequestError error) {
                     loading = false;
-                    Log.i(TAG, "Test ad unavailable; gameplay continues");
+                    Log.i(TAG, "Ad unavailable; gameplay continues");
                     // Retry only on a later menu entry/resume, with a cooldown.
                 }
             });
         } catch (RuntimeException error) {
             loading = false;
-            Log.w(TAG, "Test ad load failed", error);
+            Log.w(TAG, "Ad load failed", error);
         }
     }
 
@@ -127,7 +127,7 @@ final class InterstitialController {
         try {
             ad.show(activity);
         } catch (RuntimeException error) {
-            Log.w(TAG, "Test ad show failed", error);
+            Log.w(TAG, "Ad show failed", error);
             finish(ad, token);
         }
     }

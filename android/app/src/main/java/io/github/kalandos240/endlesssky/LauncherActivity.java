@@ -78,6 +78,11 @@ public final class LauncherActivity extends Activity {
         export = button(layout, R.string.export_pilots, view -> chooseFile(EXPORT));
         restore = button(layout, R.string.import_pilots, view -> chooseFile(IMPORT));
         undo = button(layout, R.string.undo_restore, view -> prepareUndo());
+        button(layout, R.string.about_app, view -> new AlertDialog.Builder(this)
+                .setTitle(R.string.app_name)
+                .setMessage(getString(R.string.about_details, BuildConfig.VERSION_NAME)
+                        + "\n\n" + getString(R.string.ads_notice))
+                .setPositiveButton(android.R.string.ok, null).show());
         scroll.addView(layout);
         setContentView(scroll);
         submit(R.string.preparing_saves, () -> {

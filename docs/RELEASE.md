@@ -9,7 +9,7 @@
 Используйте свой существующий ключ либо создайте новый интерактивно через JDK 17:
 
 ```sh
-keytool -genkeypair -storetype JKS -keystore /secure/path/endless-sky-release.jks \
+keytool -genkeypair -storetype PKCS12 -keystore /secure/path/endless-sky-release.p12 \
   -alias endless-sky -keyalg RSA -keysize 4096 -validity 10000
 ```
 
@@ -30,7 +30,7 @@ python3 tools/prepare_android.py
 в Bash. Путь лучше задавать абсолютным; относительный считается от `android/`.
 
 ```bash
-export ES_RELEASE_STORE_FILE=/secure/path/endless-sky-release.jks
+export ES_RELEASE_STORE_FILE=/secure/path/endless-sky-release.p12
 export ES_RELEASE_KEY_ALIAS=endless-sky
 read -r -s -p 'Keystore password: ' ES_RELEASE_STORE_PASSWORD; echo
 export ES_RELEASE_STORE_PASSWORD
@@ -55,8 +55,7 @@ python3 tools/check_apk.py android/app/build/outputs/apk/release/app-release.apk
 ```
 
 Сохраните SHA-256 сертификата и сверяйте его в следующих релизах. Для обновлений
-увеличивайте `versionCode` в `android/app/build.gradle`. Версия сейчас остаётся
-`0.3.0-dev`: настройка подписи сама по себе не превращает порт в готовый релиз.
+увеличивайте `versionCode` в `android/app/build.gradle`. Версия сейчас `0.4.0` (debug: `0.4.0-dev`); номер версии сам по себе не означает готовность к публикации.
 
 ## Перед модерацией
 
@@ -77,3 +76,35 @@ python3 tools/check_apk.py android/app/build/outputs/apk/release/app-release.apk
 
 Проверка правил магазина не заменяет тест на устройстве. Доступ к RuStore Консоли
 и постоянный ключ издателя этим репозиторием не предоставляются.
+
+## Созданный постоянный ключ
+
+31 октября 2026 создан PKCS12-ключ, alias `endless-sky`, RSA 4096,
+SHA256withRSA, сертификат действителен до 18 марта 2054.
+Открытый сертификат: [endless-sky-signing.crt](signing/endless-sky-signing.crt).
+SHA-256 сертификата:
+
+```text
+AA:BF:89:11:92:C0:CF:C2:00:8C:C0:BF:52:4D:14:71:50:AB:50:FF:6C:E4:B5:69:E7:4B:E9:1C:E1:06:D6:D8
+```
+
+Закрытый ключ и пароль находятся только в переданных владельцу резервных файлах,
+в Git их нет. Автоматически на GitHub ключ не загружался; credentials CI не настроены.
+Этот сертификат самоподписанный: он предназначен для подписи Android APK, а не
+для подтверждения личности издателя. Проверены загрузка PKCS12, подпись RSA-SHA256
+и проверка подписи открытым сертификатом; APK этим ключом пока не подписан.
+
+Чтобы собрать release с рабочим рекламным блоком после установки переменных
+ключа из инструкции выше:
+
+```sh
+cd android
+./gradlew -PesAds=yandex :app:assembleRelease --no-daemon
+```
+
+В этом режиме release использует `R-M-20312738-1`, debug всегда использует
+`demo-interstitial-yandex`. Без `esAds` по-прежнему собирается версия без SDK.
+Для `yandexTest` release запрещён. В описании рекламной версии для магазина
+должна присутствовать фраза: «Создано с использованием Yandex Mobile Ads SDK».
+В самой рекламной конфигурации она добавлена в «О приложении» и APK assets.
+Включение режима сборки не меняет вывод [проверки лицензий](LICENSE_REVIEW.md).

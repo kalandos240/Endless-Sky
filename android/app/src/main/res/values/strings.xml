@@ -41,4 +41,6 @@
     <string name="restore_complete">Restored. Choose your pilot in the game menu.</string>
     <string name="backup_failed">The operation failed. Existing saves are protected. For restoration, choose a backup created by this app.</string>
     <string name="file_picker_unavailable">No file picker is available on this device.</string>
+    <string name="about_app">About</string>
+    <string name="about_details">Android port %1$s. Endless Sky code: GPL-3.0-or-later. Source: https://github.com/kalandos240/Endless-Sky</string>
 </resources>

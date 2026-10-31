@@ -1,0 +1,7 @@
+Создано с использованием Yandex Mobile Ads SDK
+SDK version: 8.6.0
+Copyright belongs to the respective SDK rightsholders.
+https://yandex.ru/legal/mobileads_sdk_agreement/ru/
+https://legal.yandex.com/partner_ch/
+https://yandex.ru/legal/confidential/
+This notice is not a GPL compatibility exception.

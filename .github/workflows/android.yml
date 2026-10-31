@@ -81,6 +81,7 @@ jobs:
         run: |
           cd android
           ./gradlew -PesAds=yandexTest :app:compileDebugJavaWithJavac :app:processDebugMainManifest --stacktrace --no-daemon
+          ./gradlew -PesAds=yandex :app:compileDebugJavaWithJavac :app:processDebugMainManifest --stacktrace --no-daemon
       - uses: actions/cache/save@v4
         if: always() && steps.native-cache.outputs.cache-primary-key != '' && steps.native-cache.outputs.cache-hit != 'true'
         with:

@@ -41,4 +41,6 @@
     <string name="restore_complete">Восстановлено. Выберите пилота в игровом меню.</string>
     <string name="backup_failed">Не удалось выполнить операцию. Имеющиеся сохранения защищены. Для восстановления выберите копию, созданную этим приложением.</string>
     <string name="file_picker_unavailable">На устройстве недоступен выбор файла.</string>
+    <string name="about_app">О приложении</string>
+    <string name="about_details">Android-порт %1$s. Код Endless Sky: GPL-3.0-or-later. Исходники: https://github.com/kalandos240/Endless-Sky</string>
 </resources>
