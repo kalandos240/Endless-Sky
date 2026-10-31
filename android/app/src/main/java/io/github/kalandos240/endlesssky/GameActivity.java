@@ -16,6 +16,8 @@ public final class GameActivity extends SDLActivity {
     private File resources;
     private File config;
     private TouchControls controls;
+    private InterstitialController ads;
+    private boolean resumed;
     private static volatile GameActivity currentSession;
 
     static boolean isRunning() { return currentSession != null; }
@@ -23,6 +25,7 @@ public final class GameActivity extends SDLActivity {
     static native void nativeSetAction(int action, boolean pressed);
     static native void nativeResetTouch();
     static native boolean nativeIsInFlight();
+    static native long nativeAdBreakToken();
     private static native void nativeBack();
 
     @Override
@@ -48,11 +51,14 @@ public final class GameActivity extends SDLActivity {
             currentSession = this;
             nativeResetTouch();
             controls = new TouchControls(this, mLayout);
+            ads = new InterstitialController(this);
         }
     }
 
     @Override
     protected void onPause() {
+        resumed = false;
+        if (ads != null) ads.foreground(false);
         if (controls != null) {
             controls.focus(false);
         }
@@ -62,13 +68,16 @@ public final class GameActivity extends SDLActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        resumed = true;
         if (controls != null) {
             controls.focus(hasWindowFocus());
+            if (ads != null) ads.foreground(hasWindowFocus());
         }
     }
 
     @Override
     public void onWindowFocusChanged(boolean focused) {
+        if (ads != null) ads.foreground(focused && resumed && !isFinishing());
         if (controls != null) {
             controls.focus(focused);
         }
@@ -106,6 +115,10 @@ public final class GameActivity extends SDLActivity {
 
     @Override
     protected void onDestroy() {
+        if (ads != null) {
+            ads.dispose();
+            ads = null;
+        }
         if (controls != null) {
             controls.dispose();
             controls = null;
@@ -120,6 +133,11 @@ public final class GameActivity extends SDLActivity {
                 android.os.Process.killProcess(android.os.Process.myPid());
             }
         }
+    }
+
+    void prepareForAd() {
+        if (controls != null) controls.release();
+        nativeResetTouch();
     }
 
     @Override

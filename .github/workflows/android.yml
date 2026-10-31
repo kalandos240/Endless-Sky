@@ -77,6 +77,10 @@ jobs:
         run: |
           python tools/check_apk.py android/app/build/outputs/apk/debug/app-debug.apk --readelf "$ANDROID_HOME/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Compile opt-in Yandex test integration without packaging or publishing it
+        run: |
+          cd android
+          ./gradlew -PesAds=yandexTest :app:compileDebugJavaWithJavac :app:processDebugMainManifest --stacktrace --no-daemon
       - uses: actions/cache/save@v4
         if: always() && steps.native-cache.outputs.cache-primary-key != '' && steps.native-cache.outputs.cache-hit != 'true'
         with:

@@ -41,7 +41,7 @@ def check_apk(path, readelf=None):
         if readelf:
             prefix = 'Java_io_github_kalandos240_endlesssky_GameActivity_'
             required = {'SDL_main', *(prefix + name for name in
-                         ('nativeSetAction', 'nativeResetTouch', 'nativeIsInFlight', 'nativeBack'))}
+                         ('nativeSetAction', 'nativeResetTouch', 'nativeIsInFlight', 'nativeBack', 'nativeAdBreakToken'))}
             with tempfile.TemporaryDirectory() as temporary:
                 main = Path(temporary) / 'libmain.so'
                 with archive.open('lib/arm64-v8a/libmain.so') as source, main.open('wb') as output:
@@ -51,7 +51,7 @@ def check_apk(path, readelf=None):
                            if line.strip() and ' UND ' not in line}
                 if not required <= exports:
                     raise ValueError(f'Missing SDL/JNI exports: {required - exports}')
-            print('SDL entry point and all four touch JNI exports verified')
+            print('SDL entry point and all five Android JNI exports verified')
     print(f'APK validated: {len(libraries)} arm64 libraries, resource pack, dependency notices')
 
 

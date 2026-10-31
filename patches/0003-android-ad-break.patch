@@ -1,0 +1,23 @@
+diff --git a/source/main.cpp b/source/main.cpp
+--- a/source/main.cpp
++++ b/source/main.cpp
+@@ -269,6 +269,7 @@ int main(int argc, char *argv[])
+ 		GameLoop(player, queue, conversation, testToRunName, debugMode);
+ #ifdef __ANDROID__
+ 		AndroidTouch::PrepareFrame(false);
++		AndroidTouch::SetMenuBreak(false);
+ #endif
+ 	}
+ 	catch(Test::known_failure_tag)
+@@ -483,6 +484,11 @@ void GameLoop(PlayerInfo &player, TaskQueue &queue, const Conversation &conversa
+ 			// Tell all the panels to step forward, then draw them.
+ 			((!isDebugPaused && menuPanels.IsEmpty()) ? gamePanels : menuPanels).StepAll();
+ 
++#ifdef __ANDROID__
++			AndroidTouch::SetMenuBreak(!menuPanels.IsEmpty()
++				&& dynamic_cast<MenuPanel *>(menuPanels.Top().get()) != nullptr);
++#endif
++
+ 			// Caps lock slows the frame rate in debug mode.
+ 			// Slowing eases in and out over a couple of frames.
+ 			if((mod & KMOD_CAPS) && inFlight && debugMode)

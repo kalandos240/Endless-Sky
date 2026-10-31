@@ -9,4 +9,5 @@ namespace AndroidTouch {
     Command ForKey(int keycode);
     Command HeldCommands();
     void PrepareFrame(bool inFlight);
+    void SetMenuBreak(bool eligible);
 }

@@ -9,6 +9,7 @@
 namespace {
     TouchState state;
     std::atomic<bool> backRequested{false};
+    std::atomic<uint64_t> menuBreak{0};
 
     // Protocol IDs match TouchActions.java. Do not reorder when adding actions.
     const Command &Action(int index)
@@ -107,4 +108,22 @@ extern "C" JNIEXPORT void JNICALL
 Java_io_github_kalandos240_endlesssky_GameActivity_nativeBack(JNIEnv *, jclass)
 {
     backRequested.store(true);
+}
+
+// Written only by the game thread, read by the Android UI thread.
+// Low bit marks eligibility, upper bits identify a new menu entry.
+void AndroidTouch::SetMenuBreak(bool eligible)
+{
+    auto value = menuBreak.load();
+    if(eligible && !(value & 1))
+        menuBreak.store(((value >> 1) + 1) * 2 + 1);
+    else if(!eligible)
+        menuBreak.store(value & ~uint64_t{1});
+}
+
+extern "C" JNIEXPORT jlong JNICALL
+Java_io_github_kalandos240_endlesssky_GameActivity_nativeAdBreakToken(JNIEnv *, jclass)
+{
+    auto value = menuBreak.load();
+    return (value & 1) ? static_cast<jlong>(value >> 1) : 0;
 }

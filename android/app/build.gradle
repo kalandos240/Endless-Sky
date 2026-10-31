@@ -17,6 +17,12 @@ def releaseSigning = [
 ]
 def hasReleaseSigning = releaseSigning.values().every { it != null && !it.isEmpty() }
 
+def adsMode = providers.gradleProperty('esAds').getOrElse('none')
+if (!(adsMode in ['none', 'yandexTest'])) {
+    throw new GradleException('esAds must be none or yandexTest')
+}
+def yandexTestAds = adsMode == 'yandexTest'
+
 android {
     namespace 'io.github.kalandos240.endlesssky'
     compileSdk 35
@@ -66,6 +72,8 @@ android {
     }
     sourceSets {
         main {
+            java.srcDir yandexTestAds ? 'src/yandex/java' : 'src/noAds/java'
+            if (yandexTestAds) manifest.srcFile 'src/yandex/AndroidManifest.xml'
             java.srcDir new File(sdlRoot, 'android-project/app/src/main/java')
             assets.srcDir assetsRoot
             res.srcDir new File(portRoot, 'build/android-res')
@@ -131,5 +139,15 @@ tasks.register('checkReleaseSigning') {
 tasks.configureEach { task ->
     if (task.name == 'preReleaseBuild') {
         task.dependsOn 'checkReleaseSigning'
+    }
+}
+
+if (yandexTestAds) {
+    dependencies { implementation 'com.yandex.android:mobileads:8.6.0' }
+    // This mode is for local integration tests; no ads-enabled release artifact yet.
+    tasks.configureEach { task ->
+        if (task.name == 'preReleaseBuild') {
+            task.doFirst { throw new GradleException('yandexTest is debug-only; release integration is not approved.') }
+        }
     }
 }
