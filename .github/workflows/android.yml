@@ -64,7 +64,10 @@ jobs:
             echo 'ERROR: release signing accepted missing credentials'
             exit 1
           fi
-          grep -Fq 'Release signing requires ES_RELEASE_STORE_FILE' ../build/signing-check.log
+          if ! grep -Fq 'Release signing requires ES_RELEASE_STORE_FILE' ../build/signing-check.log; then
+            cat ../build/signing-check.log
+            exit 1
+          fi
       - name: Build arm64 development APK
         run: |
           export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/28.2.13676358"

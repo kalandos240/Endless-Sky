@@ -128,4 +128,8 @@ tasks.register('checkReleaseSigning') {
         }
     }
 }
-tasks.named('preReleaseBuild').configure { dependsOn 'checkReleaseSigning' }
+tasks.configureEach { task ->
+    if (task.name == 'preReleaseBuild') {
+        task.dependsOn 'checkReleaseSigning'
+    }
+}
