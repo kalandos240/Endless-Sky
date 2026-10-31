@@ -108,3 +108,25 @@ cd android
 должна присутствовать фраза: «Создано с использованием Yandex Mobile Ads SDK».
 В самой рекламной конфигурации она добавлена в «О приложении» и APK assets.
 Включение режима сборки не меняет вывод [проверки лицензий](LICENSE_REVIEW.md).
+
+## Подпись вне CI
+
+Workflow `Android release for offline signing` собирает SDK-релиз с
+`-PesAds=yandex -PesOfflineSigning=true`. Это явно выбранный неподписанный
+промежуточный пакет, который сам по себе нельзя установить или опубликовать.
+Обычная release-сборка по-прежнему требует ключ. CI не получает закрытый ключ;
+подпись постоянным ключом ставится после скачивания и проверки артефакта.
+Артефакт содержит выровненный APK и `apksigner.jar` из Build Tools 35.0.0.
+
+```sh
+java -jar apksigner.jar sign --ks /secure/path/endless-sky-release.p12 \
+  --ks-type PKCS12 --ks-key-alias endless-sky \
+  --ks-pass file:/secure/path/password.txt --key-pass file:/secure/path/password.txt \
+  --min-sdk-version 26 --v1-signing-enabled false \
+  --out endless-sky-0.4.0-arm64.apk endless-sky-0.4.0-arm64-unsigned.apk
+java -jar apksigner.jar verify --verbose --print-certs endless-sky-0.4.0-arm64.apk
+```
+
+Проверьте SHA-256 сертификата по открытому сертификату в этом репозитории.
+Не изменяйте ZIP/APK после подписи. После скачивания подписанного APK остаётся
+ручная проверка на устройстве; успешная сборка её не заменяет.

@@ -1,0 +1,74 @@
+name: Android release for offline signing
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/release.yml']
+permissions:
+  contents: read
+concurrency:
+  group: android-release-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      VCPKG_MAX_CONCURRENCY: 2
+      CMAKE_BUILD_PARALLEL_LEVEL: 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - name: Install Android toolchain and native build tools
+        run: |
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;28.2.13676358' 'cmake;3.31.6'
+          sudo apt-get update
+          sudo apt-get install -y autoconf automake libtool pkg-config nasm
+      - uses: actions/cache/restore@v4
+        id: native-cache
+        with:
+          path: ~/.cache/vcpkg/archives
+          key: vcpkg-${{ runner.os }}-ndk28.2-${{ hashFiles('android/native/**', 'tools/dependencies.json') }}
+          restore-keys: vcpkg-${{ runner.os }}-ndk28.2-
+      - name: Prepare pinned game sources, SDL bridge, vcpkg, and assets
+        run: python tools/prepare_android.py
+      - name: Verify the complete resource package through the Java installer
+        run: |
+          mkdir -p build/java-tests
+          javac -Xlint:all -Werror -d build/java-tests android/app/src/main/java/io/github/kalandos240/endlesssky/ResourceInstaller.java tests/java/ResourcePackSmokeTest.java
+          java -cp build/java-tests io.github.kalandos240.endlesssky.ResourcePackSmokeTest build/android-assets build/resource-smoke
+      - name: Build unsigned release with the publisher ad unit
+        run: |
+          export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/28.2.13676358"
+          cd android
+          ./gradlew -PesAds=yandex -PesOfflineSigning=true :app:assembleRelease --stacktrace --no-daemon
+      - name: Validate and align unsigned APK
+        run: |
+          mkdir -p build/offline-release
+          python tools/check_apk.py android/app/build/outputs/apk/release/app-release-unsigned.apk --readelf "$ANDROID_HOME/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -P 16 -f 4 android/app/build/outputs/apk/release/app-release-unsigned.apk build/offline-release/endless-sky-0.4.0-arm64-unsigned.apk
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 -v 4 build/offline-release/endless-sky-0.4.0-arm64-unsigned.apk > build/offline-release/alignment.txt
+          cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" build/offline-release/
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging build/offline-release/endless-sky-0.4.0-arm64-unsigned.apk > build/offline-release/package-info.txt
+          sha256sum build/offline-release/* > build/offline-release/SHA256SUMS.txt
+      - uses: actions/cache/save@v4
+        if: always() && steps.native-cache.outputs.cache-primary-key != '' && steps.native-cache.outputs.cache-hit != 'true'
+        with:
+          path: ~/.cache/vcpkg/archives
+          key: ${{ steps.native-cache.outputs.cache-primary-key }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: endless-sky-0.4.0-offline-signing
+          path: build/offline-release/*
+          if-no-files-found: error
+          retention-days: 7

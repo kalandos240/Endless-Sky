@@ -17,6 +17,9 @@ def releaseSigning = [
 ]
 def hasReleaseSigning = releaseSigning.values().every { it != null && !it.isEmpty() }
 
+// Explicit unsigned output for offline signing; never the default release path.
+def offlineSigning = providers.gradleProperty('esOfflineSigning').getOrElse('false') == 'true'
+
 def adsMode = providers.gradleProperty('esAds').getOrElse('none')
 if (!(adsMode in ['none', 'yandexTest', 'yandex'])) {
     throw new GradleException('esAds must be none, yandexTest or yandex')
@@ -70,7 +73,7 @@ android {
             versionNameSuffix '-dev'
         }
         release {
-            signingConfig signingConfigs.release
+            if (!offlineSigning) signingConfig signingConfigs.release
             if (adsMode == 'yandex') {
                 buildConfigField 'String', 'YANDEX_AD_UNIT', '"R-M-20312738-1"'
             }
@@ -150,7 +153,7 @@ tasks.register('checkReleaseSigning') {
 }
 tasks.configureEach { task ->
     if (task.name == 'preReleaseBuild') {
-        task.dependsOn 'checkReleaseSigning'
+        if (!offlineSigning) task.dependsOn 'checkReleaseSigning'
     }
 }
 
