@@ -34,6 +34,10 @@ jobs:
         run: |
           javac -Xlint:all -Werror -d build/java-tests android/app/src/main/java/io/github/kalandos240/endlesssky/TouchActions.java android/app/src/main/java/io/github/kalandos240/endlesssky/TouchInputState.java tests/java/TouchInputStateTest.java
           java -cp build/java-tests io.github.kalandos240.endlesssky.TouchInputStateTest
+      - name: Test 150-second interstitial scheduling policy
+        run: |
+          javac -Xlint:all -Werror -d build/java-tests android/app/src/main/java/io/github/kalandos240/endlesssky/AdSchedule.java tests/java/AdScheduleTest.java
+          java -cp build/java-tests io.github.kalandos240.endlesssky.AdScheduleTest
       - name: Test native touch state and frame transitions
         run: |
           g++ -std=c++20 -Wall -Wextra -Werror -pthread -I android/native tests/native/TouchStateTest.cpp -o build/touch-state-test
