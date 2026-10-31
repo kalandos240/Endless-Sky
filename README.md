@@ -22,6 +22,8 @@ cd android
 
 Начальная цель: **arm64-v8a, Android 8.0+ (API 26), OpenGL ES 3.0**. Текущий development applicationId — `io.github.kalandos240.endlesssky`, у debug-сборки суффикс `.debug`. Постоянный идентификатор нужно подтвердить до первого выпуска.
 
+Релизная сборка с постоянным ключом: [инструкция](docs/RELEASE.md). Без параметров подписи `assembleRelease` и `bundleRelease` завершаются ошибкой; debug-сборка работает без них.
+
 ## Как устроен порт
 
 - `upstream-revision.txt` закрепляет commit игры; `patches/` содержит изменения её CMake и путей ресурсов.

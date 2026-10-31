@@ -8,6 +8,15 @@ def sdlRoot = new File(portRoot, 'build/sdl2')
 def vcpkgRoot = new File(portRoot, 'build/vcpkg')
 def assetsRoot = new File(portRoot, 'build/android-assets')
 
+// Supply a publisher-owned key outside the checkout. Never fall back to debug signing.
+def releaseSigning = [
+    storeFile: System.getenv('ES_RELEASE_STORE_FILE'),
+    storePassword: System.getenv('ES_RELEASE_STORE_PASSWORD'),
+    keyAlias: System.getenv('ES_RELEASE_KEY_ALIAS'),
+    keyPassword: System.getenv('ES_RELEASE_KEY_PASSWORD')
+]
+def hasReleaseSigning = releaseSigning.values().every { it != null && !it.isEmpty() }
+
 android {
     namespace 'io.github.kalandos240.endlesssky'
     compileSdk 35
@@ -34,10 +43,20 @@ android {
             }
         }
     }
+    signingConfigs {
+        release {
+            if (hasReleaseSigning) {
+                storeFile rootProject.file(releaseSigning.storeFile)
+                storePassword releaseSigning.storePassword
+                keyAlias releaseSigning.keyAlias
+                keyPassword releaseSigning.keyPassword
+            }
+        }
+    }
     buildTypes {
         debug { applicationIdSuffix '.debug' }
         release {
-            // Signing is supplied locally by the publisher, never checked into git.
+            signingConfig signingConfigs.release
             minifyEnabled false
         }
     }
@@ -97,3 +116,16 @@ android.applicationVariants.all { variant ->
     android.sourceSets.getByName(variant.name).assets.srcDir licenseDirectory
     tasks.named("merge${cap}Assets").configure { dependsOn collectLicenses }
 }
+
+// Keep debug builds usable without secrets, but reject unsigned release APKs and bundles.
+tasks.register('checkReleaseSigning') {
+    doLast {
+        if (!hasReleaseSigning) {
+            throw new GradleException('Release signing requires ES_RELEASE_STORE_FILE, ES_RELEASE_STORE_PASSWORD, ES_RELEASE_KEY_ALIAS and ES_RELEASE_KEY_PASSWORD.')
+        }
+        if (!rootProject.file(releaseSigning.storeFile).isFile()) {
+            throw new GradleException('Release keystore file is missing.')
+        }
+    }
+}
+tasks.named('preReleaseBuild').configure { dependsOn 'checkReleaseSigning' }

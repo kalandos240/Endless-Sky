@@ -57,6 +57,14 @@ jobs:
         with:
           path: ~/.android/debug.keystore
           key: android-development-keystore-v1
+      - name: Verify release builds require publisher signing credentials
+        run: |
+          cd android
+          if env -u ES_RELEASE_STORE_FILE -u ES_RELEASE_STORE_PASSWORD -u ES_RELEASE_KEY_ALIAS -u ES_RELEASE_KEY_PASSWORD ./gradlew :app:checkReleaseSigning --no-daemon > ../build/signing-check.log 2>&1; then
+            echo 'ERROR: release signing accepted missing credentials'
+            exit 1
+          fi
+          grep -Fq 'Release signing requires ES_RELEASE_STORE_FILE' ../build/signing-check.log
       - name: Build arm64 development APK
         run: |
           export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/28.2.13676358"
