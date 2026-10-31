@@ -6,6 +6,8 @@
 
 [Скачать APK 0.3 в ZIP](https://github.com/kalandos240/Endless-Sky/actions/runs/41119313526/artifacts/13006824103) · [Успешная сборка](https://github.com/kalandos240/Endless-Sky/actions/runs/41119313526). Артефакты хранятся 14 дней; затем APK можно пересобрать workflow **Android debug APK**. Исходный commit сборки: `ecf82585bb901a6bb5ffd5c90add83d429391c46`.
 
+**Release 0.4.0 с SDK Яндекса собран и подписан постоянным ключом.** APK передан отдельным файлом; проверены упаковка и подпись v2/v3. [Метаданные, SHA-256 и ограничения проверки](docs/RELEASE_0_4_0.md). Проверка на устройстве и публикация в RuStore ещё не выполнены.
+
 ## Подготовка и сборка
 
 Нужны Python 3.10+, Git, JDK 17, Android SDK Platform 35, Build Tools 35.0.0, NDK 28.2.13676358 и CMake 3.31.6. На Linux для зависимостей также нужны C/C++ compiler, autoconf, automake, libtool, pkg-config и nasm.

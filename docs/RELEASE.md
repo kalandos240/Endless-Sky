@@ -121,7 +121,7 @@ Workflow `Android release for offline signing` собирает SDK-релиз �
 ```sh
 java -jar apksigner.jar sign --ks /secure/path/endless-sky-release.p12 \
   --ks-type PKCS12 --ks-key-alias endless-sky \
-  --ks-pass file:/secure/path/password.txt --key-pass file:/secure/path/password.txt \
+  --ks-pass file:/secure/path/password.txt \
   --min-sdk-version 26 --v1-signing-enabled false \
   --out endless-sky-0.4.0-arm64.apk endless-sky-0.4.0-arm64-unsigned.apk
 java -jar apksigner.jar verify --verbose --print-certs endless-sky-0.4.0-arm64.apk

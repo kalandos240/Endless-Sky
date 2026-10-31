@@ -27,7 +27,6 @@ def sign(args):
         subprocess.run(java + ['sign', '--ks', str(Path(args.keystore).resolve()),
                               '--ks-type', 'PKCS12', '--ks-key-alias', args.alias,
                               '--ks-pass', 'file:' + str(Path(args.password_file).resolve()),
-                              '--key-pass', 'file:' + str(Path(args.password_file).resolve()),
                               '--min-sdk-version', '26', '--v1-signing-enabled', 'false',
                               '--v4-signing-enabled', 'false', '--out', str(signed), str(source)],
                        check=True)
