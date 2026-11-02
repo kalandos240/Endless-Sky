@@ -102,7 +102,7 @@ cd android
 ./gradlew -PesAds=yandex :app:assembleRelease --no-daemon
 ```
 
-В этом режиме release использует `R-M-20312738-1`, debug всегда использует
+В этом режиме release использует `R-M-20327075-1`, debug всегда использует
 `demo-interstitial-yandex`. Без `esAds` по-прежнему собирается версия без SDK.
 Для `yandexTest` release запрещён. В описании рекламной версии для магазина
 должна присутствовать фраза: «Создано с использованием Yandex Mobile Ads SDK».
