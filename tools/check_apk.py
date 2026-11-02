@@ -11,7 +11,7 @@ from pathlib import Path
 REQUIRED_LIBRARIES = {'libmain.so', 'libSDL2.so', 'libopenal.so', 'libc++_shared.so'}
 
 
-def check_apk(path, readelf=None):
+def check_apk(path, readelf=None, expected_ad_unit=None):
     with zipfile.ZipFile(path) as archive:
         names = archive.namelist()
         libraries = [name for name in names if name.startswith('lib/') and name.endswith('.so')]
@@ -38,6 +38,19 @@ def check_apk(path, readelf=None):
             raise ValueError('Native dependency license notices are missing')
         if 'assets/licenses/SDL2.txt' not in names:
             raise ValueError('SDL license notice is missing')
+        if expected_ad_unit:
+            if 'assets/licenses/Yandex-Mobile-Ads.txt' not in names:
+                raise ValueError('Yandex license notice is missing')
+            dex_names = [name for name in names if name.startswith('classes') and name.endswith('.dex')]
+            unit_found = sdk_found = False
+            for name in dex_names:
+                data = archive.read(name)
+                unit_found |= expected_ad_unit.encode('ascii') in data
+                sdk_found |= b'Lcom/yandex/mobile/ads/' in data
+            if not unit_found:
+                raise ValueError('Expected publisher ad unit is missing from APK DEX')
+            if not sdk_found:
+                raise ValueError('Yandex SDK is missing from APK DEX')
         if readelf:
             prefix = 'Java_io_github_kalandos240_endlesssky_GameActivity_'
             required = {'SDL_main', *(prefix + name for name in
@@ -59,5 +72,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('apk')
     parser.add_argument('--readelf', help='NDK llvm-readelf for exported SDL/JNI symbol checks')
+    parser.add_argument('--expected-ad-unit', help='Require this live unit, SDK classes and Yandex notice')
     arguments = parser.parse_args()
-    check_apk(arguments.apk, arguments.readelf)
+    check_apk(arguments.apk, arguments.readelf, arguments.expected_ad_unit)

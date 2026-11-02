@@ -55,7 +55,7 @@ python3 tools/check_apk.py android/app/build/outputs/apk/release/app-release.apk
 ```
 
 Сохраните SHA-256 сертификата и сверяйте его в следующих релизах. Для обновлений
-увеличивайте `versionCode` в `android/app/build.gradle`. Версия сейчас `0.4.0` (debug: `0.4.0-dev`); номер версии сам по себе не означает готовность к публикации.
+увеличивайте `versionCode` в `android/app/build.gradle`. Версия сейчас `0.4.1` (debug: `0.4.1-dev`); номер версии сам по себе не означает готовность к публикации.
 
 ## Перед модерацией
 
@@ -123,8 +123,8 @@ java -jar apksigner.jar sign --ks /secure/path/endless-sky-release.p12 \
   --ks-type PKCS12 --ks-key-alias endless-sky \
   --ks-pass file:/secure/path/password.txt \
   --min-sdk-version 26 --v1-signing-enabled false \
-  --out endless-sky-0.4.0-arm64.apk endless-sky-0.4.0-arm64-unsigned.apk
-java -jar apksigner.jar verify --verbose --print-certs endless-sky-0.4.0-arm64.apk
+  --out endless-sky-0.4.1-arm64.apk endless-sky-0.4.1-arm64-unsigned.apk
+java -jar apksigner.jar verify --verbose --print-certs endless-sky-0.4.1-arm64.apk
 ```
 
 Проверьте SHA-256 сертификата по открытому сертификату в этом репозитории.

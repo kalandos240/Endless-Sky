@@ -43,4 +43,10 @@
     <string name="file_picker_unavailable">No file picker is available on this device.</string>
     <string name="about_app">About</string>
     <string name="about_details">Android port %1$s. Endless Sky code: GPL-3.0-or-later. Source: https://github.com/kalandos240/Endless-Sky</string>
+    <string name="ads_privacy_title">Advertising and privacy</string>
+    <string name="ads_privacy_message">This version contains Yandex Mobile Ads SDK. The SDK may process technical device and network data to deliver advertising and measure its performance. You can allow personalized advertising or continue without giving that consent. Precise location tracking is disabled. Your choice can be changed in About. See the Yandex Privacy Policy for details.</string>
+    <string name="ads_privacy_accept">Allow personalization</string>
+    <string name="ads_privacy_decline">Without personalization</string>
+    <string name="ads_privacy_policy">Yandex Privacy Policy</string>
+    <string name="ads_privacy_unavailable">No browser is available. Policy: https://yandex.ru/legal/confidential/</string>
 </resources>

@@ -1,5 +1,11 @@
 package io.github.kalandos240.endlesssky;
 
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.ActivityNotFoundException;
+import android.content.Intent;
+import android.net.Uri;
+import android.widget.Toast;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
@@ -29,7 +35,7 @@ final class InterstitialController {
     private boolean loading;
     private boolean active;
     private boolean disposed;
-    private long lastMenu;
+    private final AdOpportunity opportunities = new AdOpportunity();
     private long lastLoad = -30_000;
     private long loadedAt;
     private final Runnable poll = this::poll;
@@ -38,7 +44,8 @@ final class InterstitialController {
         this.activity = activity;
         try {
             // No assumed consent to personalization or location tracking.
-            YandexAds.setUserConsent(false);
+            YandexAds.setUserConsent(activity.getSharedPreferences("ads_privacy", 0)
+                    .getBoolean("personalized", false));
             YandexAds.setLocationTracking(false);
             YandexAds.initialize(activity.getApplicationContext(), () -> handler.post(() -> {
                 if (disposed) return;
@@ -51,9 +58,41 @@ final class InterstitialController {
         }
     }
 
+    static void showPrivacyIfNeeded(Activity host) {
+        if (!host.getSharedPreferences("ads_privacy", 0).getBoolean("notice_seen", false)) {
+            showPrivacy(host);
+        }
+    }
+
+    static void showPrivacy(Activity host) {
+        if (host.isFinishing() || host.isDestroyed()) return;
+        new AlertDialog.Builder(host)
+                .setTitle(R.string.ads_privacy_title)
+                .setMessage(R.string.ads_privacy_message)
+                .setPositiveButton(R.string.ads_privacy_accept, (dialog, which) -> privacyChoice(host, true))
+                .setNegativeButton(R.string.ads_privacy_decline, (dialog, which) -> privacyChoice(host, false))
+                .setNeutralButton(R.string.ads_privacy_policy, (dialog, which) -> {
+                    try {
+                        host.startActivity(new Intent(Intent.ACTION_VIEW,
+                                Uri.parse("https://yandex.ru/legal/confidential/")));
+                    } catch (ActivityNotFoundException error) {
+                        Toast.makeText(host, R.string.ads_privacy_unavailable, Toast.LENGTH_LONG).show();
+                    }
+                })
+                .setOnCancelListener(dialog -> privacyChoice(host, false))
+                .show();
+    }
+
+    private static void privacyChoice(Activity host, boolean personalized) {
+        host.getSharedPreferences("ads_privacy", 0).edit()
+                .putBoolean("notice_seen", true).putBoolean("personalized", personalized).apply();
+        YandexAds.setUserConsent(personalized);
+    }
+
     void foreground(boolean value) {
         if (disposed) return;
         active = value;
+        if (!value) opportunities.clear();
         schedule.foreground(value);
         handler.removeCallbacks(poll);
         if (value) {
@@ -78,12 +117,12 @@ final class InterstitialController {
                     }
                     ready = ad;
                     loadedAt = SystemClock.elapsedRealtime();
-                    // Never show from a load callback: wait for the next menu transition.
+                    // Never show from a load callback: wait for the next safe scene transition.
                 }
                 @Override public void onAdFailedToLoad(AdRequestError error) {
                     loading = false;
                     Log.i(TAG, "Ad unavailable; gameplay continues");
-                    // Retry only on a later menu entry/resume, with a cooldown.
+                    // Retry only on a later scene entry/resume, with a cooldown.
                 }
             });
         } catch (RuntimeException error) {
@@ -94,17 +133,16 @@ final class InterstitialController {
 
     private void poll() {
         if (!active || disposed) return;
-        long menu = GameActivity.nativeAdBreakToken();
-        boolean entered = menu != 0 && menu != lastMenu;
-        if (menu != 0) lastMenu = menu;
+        long scene = GameActivity.nativeAdBreakToken();
+        boolean entered = opportunities.consume(scene, SystemClock.elapsedRealtime()) != 0;
         if (ready != null && SystemClock.elapsedRealtime() - loadedAt > 3_600_000) {
             ready.setAdEventListener(null);
             ready = null;
         }
         long token = schedule.tryBegin(entered, ready != null && showing == null);
         if (token != 0) {
-            // Recheck that the native menu has not changed while polling.
-            if (GameActivity.nativeAdBreakToken() == menu && !activity.isFinishing()) show(token);
+            // Recheck that the native scene has not changed while polling.
+            if (GameActivity.nativeAdBreakToken() == scene && !activity.isFinishing()) show(token);
             else schedule.finished(token);
         } else if (entered) {
             load();

@@ -57,11 +57,16 @@ jobs:
       - name: Validate and align unsigned APK
         run: |
           mkdir -p build/offline-release
-          python tools/check_apk.py android/app/build/outputs/apk/release/app-release-unsigned.apk --readelf "$ANDROID_HOME/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
-          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -P 16 -f 4 android/app/build/outputs/apk/release/app-release-unsigned.apk build/offline-release/endless-sky-0.4.0-arm64-unsigned.apk
-          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 -v 4 build/offline-release/endless-sky-0.4.0-arm64-unsigned.apk > build/offline-release/alignment.txt
+          python tools/check_apk.py android/app/build/outputs/apk/release/app-release-unsigned.apk --expected-ad-unit R-M-20327075-1 --readelf "$ANDROID_HOME/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -P 16 -f 4 android/app/build/outputs/apk/release/app-release-unsigned.apk build/offline-release/endless-sky-0.4.1-arm64-unsigned.apk
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 -v 4 build/offline-release/endless-sky-0.4.1-arm64-unsigned.apk > build/offline-release/alignment.txt
           cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" build/offline-release/
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging build/offline-release/endless-sky-0.4.0-arm64-unsigned.apk > build/offline-release/package-info.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging build/offline-release/endless-sky-0.4.1-arm64-unsigned.apk > build/offline-release/package-info.txt
+          grep -F "package: name='io.github.kalandos240.endlesssky' versionCode='5' versionName='0.4.1'" build/offline-release/package-info.txt
+          if grep -q 'application-debuggable' build/offline-release/package-info.txt; then
+            echo 'Release APK must not be debuggable'
+            exit 1
+          fi
           sha256sum build/offline-release/* > build/offline-release/SHA256SUMS.txt
       - uses: actions/cache/save@v4
         if: always() && steps.native-cache.outputs.cache-primary-key != '' && steps.native-cache.outputs.cache-hit != 'true'
@@ -70,7 +75,7 @@ jobs:
           key: ${{ steps.native-cache.outputs.cache-primary-key }}
       - uses: actions/upload-artifact@v4
         with:
-          name: endless-sky-0.4.0-offline-signing
+          name: endless-sky-0.4.1-offline-signing
           path: build/offline-release/*
           if-no-files-found: error
           retention-days: 7

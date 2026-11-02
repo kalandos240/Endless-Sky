@@ -46,6 +46,27 @@ class ApkChecks(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'SDL license'):
                 check_apk(path)
 
+    def test_live_ad_unit_and_sdk_packaged(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / 'test.apk'
+            apk_fixture(path)
+            with zipfile.ZipFile(path, 'a') as archive:
+                archive.writestr('assets/licenses/Yandex-Mobile-Ads.txt', b'notice')
+                archive.writestr('classes.dex', b'Lcom/yandex/mobile/ads/common/YandexAds; R-M-20327075-1')
+            check_apk(path, expected_ad_unit='R-M-20327075-1')
+            with self.assertRaisesRegex(ValueError, 'publisher ad unit'):
+                check_apk(path, expected_ad_unit='R-M-20312738-1')
+
+    def test_ad_unit_without_sdk_rejected(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / 'test.apk'
+            apk_fixture(path)
+            with zipfile.ZipFile(path, 'a') as archive:
+                archive.writestr('assets/licenses/Yandex-Mobile-Ads.txt', b'notice')
+                archive.writestr('classes.dex', b'R-M-20327075-1')
+            with self.assertRaisesRegex(ValueError, 'Yandex SDK'):
+                check_apk(path, expected_ad_unit='R-M-20327075-1')
+
 
 if __name__ == '__main__':
     unittest.main()

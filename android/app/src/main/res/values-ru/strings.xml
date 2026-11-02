@@ -43,4 +43,10 @@
     <string name="file_picker_unavailable">На устройстве недоступен выбор файла.</string>
     <string name="about_app">О приложении</string>
     <string name="about_details">Android-порт %1$s. Код Endless Sky: GPL-3.0-or-later. Исходники: https://github.com/kalandos240/Endless-Sky</string>
+    <string name="ads_privacy_title">Реклама и конфиденциальность</string>
+    <string name="ads_privacy_message">В этой версии используется Yandex Mobile Ads SDK. Для рекламы и измерения её эффективности SDK может обрабатывать технические данные устройства и сети. Можно разрешить персонализацию рекламы или продолжить без такого согласия. Отслеживание точного местоположения отключено. Выбор можно изменить в разделе «О приложении». Подробности — в политике конфиденциальности Яндекса.</string>
+    <string name="ads_privacy_accept">Разрешить персонализацию</string>
+    <string name="ads_privacy_decline">Без персонализации</string>
+    <string name="ads_privacy_policy">Политика Яндекса</string>
+    <string name="ads_privacy_unavailable">Браузер недоступен. Политика: https://yandex.ru/legal/confidential/</string>
 </resources>

@@ -9,5 +9,6 @@ namespace AndroidTouch {
     Command ForKey(int keycode);
     Command HeldCommands();
     void PrepareFrame(bool inFlight);
-    void SetMenuBreak(bool eligible);
+    // 0: unsafe, 1: main menu, 2: landed planet overview.
+    void SetAdBreak(int place);
 }

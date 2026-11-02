@@ -1,23 +1,38 @@
 diff --git a/source/main.cpp b/source/main.cpp
 --- a/source/main.cpp
 +++ b/source/main.cpp
-@@ -269,6 +269,7 @@ int main(int argc, char *argv[])
+@@ -36,6 +36,9 @@
+ #include "MenuPanel.h"
+ #include "Panel.h"
+ #include "PilotProfile.h"
++#ifdef __ANDROID__
++#include "PlanetPanel.h"
++#endif
+ #include "PlayerInfo.h"
+ #include "PluginManager.h"
+ #include "Preferences.h"
+@@ -271,6 +274,7 @@
  		GameLoop(player, queue, conversation, testToRunName, debugMode);
  #ifdef __ANDROID__
  		AndroidTouch::PrepareFrame(false);
-+		AndroidTouch::SetMenuBreak(false);
++		AndroidTouch::SetAdBreak(0);
  #endif
  	}
  	catch(Test::known_failure_tag)
-@@ -483,6 +484,11 @@ void GameLoop(PlayerInfo &player, TaskQueue &queue, const Conversation &conversa
+@@ -486,6 +490,16 @@
+ 
  			// Tell all the panels to step forward, then draw them.
  			((!isDebugPaused && menuPanels.IsEmpty()) ? gamePanels : menuPanels).StepAll();
- 
-+#ifdef __ANDROID__
-+			AndroidTouch::SetMenuBreak(!menuPanels.IsEmpty()
-+				&& dynamic_cast<MenuPanel *>(menuPanels.Top().get()) != nullptr);
-+#endif
 +
++#ifdef __ANDROID__
++			// Only completed, paused scene transitions can offer an interstitial.
++			const bool adMenu = !menuPanels.IsEmpty()
++				&& dynamic_cast<MenuPanel *>(menuPanels.Top().get()) != nullptr;
++			const bool adPlanet = menuPanels.IsEmpty() && !gamePanels.IsEmpty()
++				&& player.GetPlanet() && !player.IsDead()
++				&& dynamic_cast<PlanetPanel *>(gamePanels.Top().get()) != nullptr;
++			AndroidTouch::SetAdBreak(adMenu ? 1 : (adPlanet ? 2 : 0));
++#endif
+ 
  			// Caps lock slows the frame rate in debug mode.
  			// Slowing eases in and out over a couple of frames.
- 			if((mod & KMOD_CAPS) && inFlight && debugMode)

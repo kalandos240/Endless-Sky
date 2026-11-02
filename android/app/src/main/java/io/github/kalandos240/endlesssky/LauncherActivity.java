@@ -78,13 +78,10 @@ public final class LauncherActivity extends Activity {
         export = button(layout, R.string.export_pilots, view -> chooseFile(EXPORT));
         restore = button(layout, R.string.import_pilots, view -> chooseFile(IMPORT));
         undo = button(layout, R.string.undo_restore, view -> prepareUndo());
-        button(layout, R.string.about_app, view -> new AlertDialog.Builder(this)
-                .setTitle(R.string.app_name)
-                .setMessage(getString(R.string.about_details, BuildConfig.VERSION_NAME)
-                        + "\n\n" + getString(R.string.ads_notice))
-                .setPositiveButton(android.R.string.ok, null).show());
+        button(layout, R.string.about_app, view -> showAbout());
         scroll.addView(layout);
         setContentView(scroll);
+        InterstitialController.showPrivacyIfNeeded(this);
         submit(R.string.preparing_saves, () -> {
             backups.recover();
             try { Files.deleteIfExists(new File(getCacheDir(), "pilot-export.zip").toPath()); }
@@ -96,6 +93,19 @@ public final class LauncherActivity extends Activity {
                 Log.w("EndlessSky", "Export cache cleanup deferred", cleanupError);
             }
         }, R.string.backup_intro);
+    }
+
+    private void showAbout() {
+        String notice = getString(R.string.ads_notice);
+        AlertDialog.Builder dialog = new AlertDialog.Builder(this)
+                .setTitle(R.string.app_name)
+                .setMessage(getString(R.string.about_details, BuildConfig.VERSION_NAME) + "\n\n" + notice)
+                .setPositiveButton(android.R.string.ok, null);
+        if (!notice.isEmpty()) {
+            dialog.setNeutralButton(R.string.ads_privacy_title,
+                    (ignored, which) -> InterstitialController.showPrivacy(this));
+        }
+        dialog.show();
     }
 
     private Button button(LinearLayout parent, int label, View.OnClickListener listener) {
