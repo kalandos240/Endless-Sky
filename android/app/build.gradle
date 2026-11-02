@@ -75,7 +75,7 @@ android {
         release {
             if (!offlineSigning) signingConfig signingConfigs.release
             if (adsMode == 'yandex') {
-                buildConfigField 'String', 'YANDEX_AD_UNIT', '"R-M-20312738-1"'
+                buildConfigField 'String', 'YANDEX_AD_UNIT', '"R-M-20327075-1"'
             }
             minifyEnabled false
         }
